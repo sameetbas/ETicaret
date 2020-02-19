@@ -11,6 +11,12 @@
 <body>
     <partial name="_navbar" />
     <div class="container pt-100 mb-5">
+
+        @if (TempData["message"] != null) // tempdatadan bir mesaj gelirse ekrana yazdır.
+        {
+            <partial name="_resultmessage" model="@(TempData.Get<ResultMessage>("message"))" />
+        }
+
         @RenderBody()
     </div>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

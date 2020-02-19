@@ -6,18 +6,27 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ShopApp.BLL.Abstract;
 using ShopApp.BLL.Concrete;
 using ShopApp.DAL.Abstract;
 using ShopApp.DAL.Concrete.EFCore;
+using ShopApp.WebUI.EmailServices;
 using ShopApp.WebUI.Identity;
 
 namespace ShopApp.WebUI
 {
     public class Startup
-    {       
+    {
+        public IConfiguration Configuration { get; set; }
+        //proje çalışınca illk bu metot çalışıp admin oluşacak ve program admını bılecek
+        public Startup(IConfiguration _configuration)
+        {
+            Configuration = _configuration;
+        }
 
         public void ConfigureServices(IServiceCollection services)
         {
@@ -66,12 +75,24 @@ namespace ShopApp.WebUI
                 {
                     HttpOnly = true,//tarayıcıdaki scriptleri kullansın mı 
                     Name = ".ShopApp.Security.Cookie", //Cookie ismi
+                    SameSite = SameSiteMode.Strict //cookieyi tarayıcıda tutmus oluyor.
                 };
             });
             services.AddScoped<IProductDal, EFCoreProductDal>();
-            services.AddScoped<IProductService, ProductManager>();
             services.AddScoped<ICategoryDal, EFCoreCategoryDal>();
+            services.AddScoped<ICartDal, EFCoreCartDal>();
+            services.AddScoped<IOrderDal, EFCoreOrderDal>();
+
+            services.AddScoped<IProductService, ProductManager>();
             services.AddScoped<ICategoryService, CategoryManager>();
+            services.AddScoped<ICartService, CartManager>();
+            services.AddScoped<IOrderService, OrderManager>();
+
+
+            //Email için bir email servicess klasörü ve içine Email Sender classı açtık.
+            //Bir tane De Interface Class açtık EmailSender Classına IEmailSenderı kalıtım alıp İmplement ettik.
+            services.AddTransient<IEmailSender, EmailSender>();
+
 
             services.AddMvc().SetCompatibilityVersion(Microsoft.AspNetCore.Mvc.CompatibilityVersion.Version_2_2);
 
@@ -80,7 +101,7 @@ namespace ShopApp.WebUI
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
         {
             if (env.IsDevelopment())
             {
@@ -103,18 +124,41 @@ namespace ShopApp.WebUI
                     template: "admin/products/{id?}",
                     defaults: new { controller = "Admin", action = "EditProduct" }
                     );
-                
+
                 routes.MapRoute(
                     name: "products",
                     template: "products/{category?}",
                     defaults: new { controller = "Shop", action = "List" }
                     );
 
+
+                routes.MapRoute(
+             name: "cart",
+             template: "cart",
+             defaults: new { controller = "Cart", action = "Index" }
+             );
+                //KULLANICI AÇIK İSE ESKİ VERDİĞİ SİPARİŞLERİ GÖRMELİ
+                routes.MapRoute(
+         name: "orders",
+         template: "orders",
+         defaults: new { controller = "Cart", action = "GetOrders" }
+         );
+
+                routes.MapRoute(
+             name: "checkout",
+             template: "checkout",
+             defaults: new { controller = "Cart", action = "Checkout" }
+              );
+
+
+
                 routes.MapRoute(
                     name: "default",
-                    template: "{controller=Home}/{action=Index}/{id?}"                    
+                    template: "{controller=Home}/{action=Index}/{id?}"
                     );
             });
+
+            SeedIdentity.Seed(userManager, roleManager, Configuration).Wait();
         }
     }
 }

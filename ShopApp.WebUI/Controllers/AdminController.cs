@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ShopApp.BLL.Abstract;
@@ -11,6 +12,8 @@ using ShopApp.WebUI.Models;
 
 namespace ShopApp.WebUI.Controllers
 {
+    [Authorize(Roles ="admin")] //Classın basına attiribute eklersen butun ActionResultlara etki eder.
+    //startup ve projedeki hatta kısımlarının uyup uymadıgına bakarak projenın ıcıne giriyor.
     public class AdminController : Controller
     {
         private IProductService _productService;
